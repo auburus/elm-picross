@@ -3,6 +3,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Array exposing (..)
 import Json.Decode as Json
+import Random
+import Time
 
 main = 
   Html.program
@@ -21,6 +23,7 @@ type alias Position =
   }
 type alias Model =
   { grid : Grid
+  , solution : Grid
   }
 
 type Status
@@ -30,14 +33,36 @@ type Status
 
 init : (Model, Cmd Msg)
 init =
-  (Model (repeat 3 (repeat 3 Undefined)), Cmd.none)
+  ( Model 
+    (repeat 3 (repeat 3 Undefined))
+    (repeat 3 (repeat 3 Undefined))
+  , Random.generate InitSolution <| randomMatrix 3 3
+  )
 
+
+
+{-randomGrid : Int -> Int -> Grid
+randomGrid rows cols =
+  if rows == 0 || cols == 0
+    then Array.empty
+    else 
+      Array.initialize rows
+        ( \i ->
+          Array.initialize cols
+            ( \j -> 
+              Random.map
+                ( \b -> if b then Correct else Incorrect)
+                Random.bool
+            )
+        )
+        -}
 
 -- UPDATE
 
 type Msg
   = Click Int Int
   | RightClick Int Int
+  | InitSolution Grid
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -46,6 +71,9 @@ update msg model =
       ({ model | grid = (updateGrid leftClick (Position rowNum colNum) model.grid) }, Cmd.none)
     RightClick rowNum colNum -> 
       ( { model | grid = (updateGrid rightClick (Position rowNum colNum) model.grid) }, Cmd.none)
+    InitSolution solution ->
+      ({ model | solution = solution }, Cmd.none)
+
 
 leftClick : Status -> Status
 leftClick status =
@@ -87,7 +115,12 @@ view model =
   div
   [ style [("width", "300px"), ("background-color", "teal")]
   ]
+  [ div []
     (printGrid model.grid)
+  , div [ style [("height", "10px")]] []
+  , div []
+    (printGrid model.solution)
+  ]
 
 printGrid: Grid -> List (Html Msg)
 printGrid grid =
@@ -103,7 +136,7 @@ printItem rowNum colNum item =
   div
     [ onClick (Click rowNum colNum)
     , onRightClick (RightClick rowNum colNum)
-    , style [("cursor", "pointer")]
+    , style [("cursor", "pointer"), ("display", "inline-block")]
     ]
     [ text (printStatus item)
     ]
@@ -128,3 +161,16 @@ rightClickOpt =
 onRightClick : msg -> Attribute msg
 onRightClick message =
   onWithOptions "contextmenu" rightClickOpt (Json.succeed message)
+
+-- RANDOM GENERATORS
+randomStatus : Random.Generator Status
+randomStatus =
+  Random.map (\b -> if b then Correct else Incorrect) Random.bool
+
+randomArray : Int -> Random.Generator (Array Status)
+randomArray length = 
+  Random.map Array.fromList <| Random.list length randomStatus
+
+randomMatrix : Int -> Int -> Random.Generator (Grid)
+randomMatrix rows cols =
+  Random.map Array.fromList <| Random.list rows <| randomArray cols

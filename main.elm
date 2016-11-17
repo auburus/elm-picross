@@ -120,6 +120,7 @@ view model =
   , div [ style [("height", "10px")]] []
   , div []
     (printGrid model.solution)
+  , resultDiv model
   ]
 
 printGrid: Grid -> List (Html Msg)
@@ -148,6 +149,17 @@ printStatus status =
     Correct     -> "1"
     Incorrect   -> "-1"
 
+resultDiv : Model -> Html Msg
+resultDiv model =
+  let
+    success = model.grid == model.solution
+
+    color = if success then "green" else "red"
+    message = if success then "Success" else "Not yet..."
+  in 
+    div
+      [ style [("color", color)] ]
+      [ text message ]
 
 
 -- HELPERS

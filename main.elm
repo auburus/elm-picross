@@ -15,6 +15,10 @@ main =
 -- MODEL
 
 type alias Grid = Array (Array Status)
+type alias Position =
+  { row : Int
+  , col : Int
+  }
 type alias Model =
   { grid : Grid
   }
@@ -24,10 +28,10 @@ type Status
   | Correct
   | Incorrect
 
-
 init : (Model, Cmd Msg)
 init =
   (Model (repeat 3 (repeat 3 Undefined)), Cmd.none)
+
 
 -- UPDATE
 
@@ -39,9 +43,9 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Click rowNum colNum ->
-      ({ model | grid = (updateGrid leftClick rowNum colNum model.grid) }, Cmd.none)
+      ({ model | grid = (updateGrid leftClick (Position rowNum colNum) model.grid) }, Cmd.none)
     RightClick rowNum colNum -> 
-      ( { model | grid = (updateGrid rightClick rowNum colNum model.grid) }, Cmd.none)
+      ( { model | grid = (updateGrid rightClick (Position rowNum colNum) model.grid) }, Cmd.none)
 
 leftClick : Status -> Status
 leftClick status =
@@ -56,14 +60,13 @@ rightClick status =
     else Incorrect
 
 
--- Given an update function
-updateGrid : (Status -> Status) -> Int -> Int -> Grid -> Grid
-updateGrid updateItem rowNum colNum grid =
+updateGrid : (Status -> Status) -> Position -> Grid -> Grid
+updateGrid updateItem pos grid =
   Array.indexedMap (\i row ->
-    if i /= rowNum 
+    if i /= pos.row 
        then row
        else Array.indexedMap (\j item -> 
-         if j /= colNum
+         if j /= pos.col
             then item
             else updateItem item
        ) row
@@ -113,17 +116,15 @@ printStatus status =
     Incorrect   -> "-1"
 
 
+
+-- HELPERS
+
 rightClickOpt : Html.Events.Options
 rightClickOpt =
   { stopPropagation = False
   , preventDefault = True
   }
 
-
--- HELPERS
-
 onRightClick : msg -> Attribute msg
 onRightClick message =
   onWithOptions "contextmenu" rightClickOpt (Json.succeed message)
-
-onMiddleClick : msg -> Attribute msg
